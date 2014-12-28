@@ -5,6 +5,9 @@
 
 # sbt specific
 activator*
+.cache/
+.history/
+.lib/
 dist/*
 target/
 lib_managed/
@@ -22,3 +25,4 @@ project/plugins/project/
 
 # Pre-processed documentation file
 rst_preprocessed
+.worksheet
