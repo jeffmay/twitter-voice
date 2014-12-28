@@ -35,8 +35,8 @@ trait SimpleSentimentOutput extends SentimentOutput {
 trait AnsiConsoleSentimentOutput extends SentimentOutput {
 
   object AnsiControls {
-    val EraseDisplay = "\033[2J\033[;H"
-    val EraseLine    = "\033[2K\033[;H"
+    val EraseDisplay = "\u001b[2J\u001b[;H"
+    val EraseLine    = "\u001b[2K\u001b[;H"
   }
 
   object AnsiColors {

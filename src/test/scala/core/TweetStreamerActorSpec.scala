@@ -10,9 +10,11 @@ class TweetStreamerActorSpec extends TestKit(ActorSystem()) with SpecificationLi
   sequential
 
   val port = 12345
-  val tweetStream = TestActorRef(new TweetStreamerActor(Uri(s"http://localhost:$port/"), testActor) with TwitterAuthorization {
-    def authorize(request: HttpRequest): HttpRequest = request
-  })
+  val tweetStream = TestActorRef(
+    new TweetStreamerActor(Uri(s"http://localhost:$port/"), Set(testActor)) with TwitterAuthorization {
+      def authorize(request: HttpRequest): HttpRequest = request
+    }
+  )
 
   "Streaming tweets" >> {
 

@@ -1,7 +1,9 @@
 package core
 
 import akka.actor.{Props, ActorSystem}
+import core.TweetStreamerActor.AddProcessor
 import scala.annotation.tailrec
+import scala.io.StdIn
 
 object Main extends App {
   import Commands._
@@ -13,28 +15,31 @@ object Main extends App {
 
   // TODO: Support streaming from TweetStreamerActor to any other actor
   val stream = system.actorOf(Props(
-    new TweetStreamerActor(TweetStreamerActor.twitterUri, sentiment) with OAuthTwitterAuthorization
+    new TweetStreamerActor(TweetStreamerActor.twitterUri) with OAuthTwitterAuthorization
   ))
 
   // TODO: Support follow command
   @tailrec
   private def commandLoop(): Unit = {
-    Console.readLine() match {
+    StdIn.readLine() match {
       case QuitCommand             => return
       case TrackCommand(query)     => stream ! query
-      case _                       => println("WTF??!!")
+      case cmd                     => println(s"Unrecognized command: '$cmd'")
     }
 
     commandLoop()
   }
 
+  system.actorOf(Props())
+
   Console.println("Awaiting command...")
   // TODO Print argument list
 
   // start processing the commands
+  stream ! AddProcessor(sentiment)
   commandLoop()
 
-  System.exit(0)
+//  System.exit(0)
 
 }
 
