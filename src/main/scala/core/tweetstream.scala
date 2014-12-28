@@ -1,39 +1,15 @@
 package core
 
-import java.io.File
-
-import com.typesafe.config.ConfigFactory
-import spray.httpx.unmarshalling.{MalformedContent, Unmarshaller, Deserialized}
-import spray.http._
-import spray.json._
-import spray.client.pipelining._
-import akka.actor.{ActorRef, Actor}
-import spray.http.HttpRequest
-import scala.Some
-import domain.{Place, User, Tweet}
-import scala.io.Source
-import scala.util.Try
-import spray.can.Http
+import akka.actor.{Actor, ActorRef}
 import akka.io.IO
+import domain.{Place, Tweet, User}
+import spray.can.Http
+import spray.client.pipelining._
+import spray.http.{HttpRequest, _}
+import spray.httpx.unmarshalling.{Deserialized, MalformedContent, Unmarshaller}
+import spray.json._
 
-trait TwitterAuthorization {
-  def authorize: HttpRequest => HttpRequest
-}
-
-trait OAuthTwitterAuthorization extends TwitterAuthorization {
-  import OAuth._
-  val home = System.getProperty("user.home")
-  val lines = Source.fromFile(s"$home/.twitter/activator").getLines().toList
-  val config = ConfigFactory.parseFile(new File(s"$home/.twitter/activator"))
-
-//  val consumer = Consumer(lines(0), lines(1))
-//  val token = Token(lines(2), lines(3))
-
-  val consumer = Consumer(config.getString("app.key"), config.getString("app.secret"))
-  val token = Token("token.value", config.getString("token.secret"))
-
-  val authorize: (HttpRequest) => HttpRequest = oAuthAuthorizer(consumer, token)
-}
+import scala.util.Try
 
 trait TweetMarshaller {
 
@@ -57,7 +33,7 @@ trait TweetMarshaller {
       case _ => Left(MalformedContent("bad tweet"))
     }
 
-    def apply(entity: HttpEntity): Deserialized[Tweet] = {
+    override def apply(entity: HttpEntity): Deserialized[Tweet] = {
       Try {
         val json = JsonParser(entity.asString).asJsObject
         (json.fields.get("id_str"), json.fields.get("text"), json.fields.get("place"), json.fields.get("user")) match {
@@ -83,13 +59,14 @@ class TweetStreamerActor(uri: Uri, processor: ActorRef) extends Actor with Tweet
   this: TwitterAuthorization =>
   val io = IO(Http)(context.system)
 
-  def receive: Receive = {
+  override def receive: Receive = {
     case query: String =>
       val body = HttpEntity(ContentType(MediaTypes.`application/x-www-form-urlencoded`), s"track=$query")
       val rq = HttpRequest(HttpMethods.POST, uri = uri, entity = body) ~> authorize
+      println(s"Sent: $rq")
       sendTo(io).withResponsesReceivedBy(self)(rq)
     case ChunkedResponseStart(_) =>
-    case MessageChunk(entity, _) => TweetUnmarshaller(entity).fold(_ => (), processor !)
+    case MessageChunk(entity, _) => TweetUnmarshaller(entity).right.foreach(processor ! _)
     case _ =>
   }
 }

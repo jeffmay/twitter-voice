@@ -97,8 +97,8 @@ class SentimentAnalysisActor extends Actor {
   def receive: Receive = {
     case tweet: Tweet =>
       val text = tweet.text.toLowerCase
-      val positive: Int = if (positiveWords.exists(text contains)) 1 else 0
-      val negative: Int = if (negativeWords.exists(text contains)) 1 else 0
+      val positive: Int = if (positiveWords.exists(text contains _)) 1 else 0
+      val negative: Int = if (negativeWords.exists(text contains _)) 1 else 0
 
       updateCounts("positive", positive)
       updateCounts("negative", negative)
